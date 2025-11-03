@@ -2,14 +2,14 @@ import urllib.request
 from PIL import Image
 import torch
 import numpy as np
-from torchvision import transforms
+from torchvision import transforms, io
 import matplotlib.pyplot as plt
 import time
 
 # url = 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Oebb_1216_050-5_at_wegberg_wildenrath.jpg'
 # url = 'https://www.auran.com/trainz/database/images/taurus/1016_006.jpg'
 
-def load_image(url):
+def load_image_url(url):
   try:
       # Add a User-Agent header to the request
       req = urllib.request.Request(
@@ -27,6 +27,10 @@ def load_image(url):
         return img # return with batch dimension
   except Exception as e:
       print(f"Error loading image: {e}")
+
+def load_image_file(path):
+  img = io.read_image(path)
+  return transforms.functional.to_pil_image(img)
 
 # receives PIL image
 # returns tensor with batch dimension

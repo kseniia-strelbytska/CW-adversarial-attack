@@ -40,3 +40,22 @@ Here `Z(x')` are the logits produced by the model and `t` is the target class.
 - Configurable loss weighting (`c`), step size, and iteration count.
 - Compatible with any pre-trained model (for example, `resnet18` from `torchvision`).
 
+## To run:
+Usage: main.py [-h] --model MODEL [--image_url IMAGE_URL] [--image_file IMAGE_FILE] [--output_file OUTPUT_FILE] --target_class TARGET_CLASS
+
+Generates an adversarial image for a given black-box model, image and target class
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --model MODEL         Black-box model for attack ('resnet18', 'resnet34', 'resnet50')
+  --image_url IMAGE_URL
+                        URL of the image file
+  --image_file IMAGE_FILE
+                        Path to the image file
+  --output_file OUTPUT_FILE
+                        Path for the adverserial image output (default './final_image.png')
+  --target_class TARGET_CLASS
+                        Target class of the adversarial image for the chosen model
+
+Example:
+python3 main.py --model 'resnet18' --image_file './cat.jpg' --output_file 'final_image_cat_to_lemon.png' --target_class 'lemon'

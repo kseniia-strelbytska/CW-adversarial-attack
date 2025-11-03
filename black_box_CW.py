@@ -1,7 +1,7 @@
 import torch
 from torch.optim import Adam
 from model import top_5_classes
-from image_support import load_image, get_normalized_image, get_unnormalized_image, display_image
+from image_support import load_image_url, get_normalized_image, get_unnormalized_image, display_image
 from torchvision import transforms
 
 class AdversarialNoise(torch.nn.Module):
@@ -38,7 +38,7 @@ def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
     # constant that defines the confidence in adversality
     c = 1
 
-    for epoch in range(1000):
+    for epoch in range(epochs):
         w, loss = adv_model(model, x, target, c)
 
         optimizer.zero_grad()
@@ -46,13 +46,13 @@ def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
         optimizer.step()
 
         if (epoch + 1) % 100 == 0:
-            print(f'Loss after {epoch} epochs is {loss}') 
+            print(f'Loss after {epoch} epochs is {loss:.4f}') 
             x_pred = 0.5 * (torch.tanh(w) + 1)
 
             display_image(x_pred)
 
             y_pred = top_5_classes(model(get_normalized_image(x_pred)))[0]
-            print(y_pred) 
+            print(f'Best prediction: {y_pred[0]} with probability {y_pred[1]:.4f}') 
 
     w, loss = adv_model(model, x, target, c) 
 
