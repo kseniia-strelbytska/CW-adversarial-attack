@@ -1,5 +1,8 @@
 import urllib.request
 from PIL import Image
+import torch
+import numpy as np
+from torchvision import transforms
 
 # url = 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Oebb_1216_050-5_at_wegberg_wildenrath.jpg'
 # url = 'https://www.auran.com/trainz/database/images/taurus/1016_006.jpg'
@@ -15,17 +18,18 @@ def load_image(url):
           }
       )
       with urllib.request.urlopen(req) as url_response:
-          img = Image.open(url_response)
-          print("Image loaded successfully!")
-          # You can now work with the 'img' object, e.g., display it:
-          return torch.tensor(img).unsqueeze(0) # return with batch dimension
+        img = Image.open(url_response)
+        print("Image loaded successfully!")
+
+        # You can now work with the 'img' object, e.g., display it:
+        return torch.tensor(np.array(img)).unsqueeze(0) # return with batch dimension
   except Exception as e:
       print(f"Error loading image: {e}")
 
-# from torchvision import transforms
-
+# receives tensor
 def get_normalized_image(x):
-    transform = transforms.Compose([transforms.Resize(224),
+    print("Compose")
+    normalize = transforms.Compose([transforms.Resize(224),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor(),
                                 transforms.Normalize(
@@ -34,8 +38,11 @@ def get_normalized_image(x):
                                 )
                                 ])
 
-    return transforms(x).clip(0.0, 1.0)
+    print("Composed")
 
+    return normalize(x).clip(0.0, 1.0)
+
+# receives tensor
 def get_unnormalized_image(x):
   unnormalize = transforms.Compose([
         transforms.Normalize(mean = [0.0, 0.0, 0.0], std = [1/0.229, 1/0.224, 1/0.225]),
@@ -44,6 +51,7 @@ def get_unnormalized_image(x):
 
   return unnormalize(x).clip(0.0, 1.0)
 
+# receives tensor with batch dimension
 def display_image(x):
   img = transforms.ToPILImage()(x[0])
   plt.imshow(img)
