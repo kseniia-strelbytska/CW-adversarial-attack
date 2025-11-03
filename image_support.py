@@ -3,6 +3,8 @@ from PIL import Image
 import torch
 import numpy as np
 from torchvision import transforms
+import matplotlib.pyplot as plt
+import time
 
 # url = 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Oebb_1216_050-5_at_wegberg_wildenrath.jpg'
 # url = 'https://www.auran.com/trainz/database/images/taurus/1016_006.jpg'
@@ -22,25 +24,23 @@ def load_image(url):
         print("Image loaded successfully!")
 
         # You can now work with the 'img' object, e.g., display it:
-        return torch.tensor(np.array(img)).unsqueeze(0) # return with batch dimension
+        return img # return with batch dimension
   except Exception as e:
       print(f"Error loading image: {e}")
 
-# receives tensor
+# receives PIL image
+# returns tensor with batch dimension
 def get_normalized_image(x):
-    print("Compose")
     normalize = transforms.Compose([transforms.Resize(224),
                                 transforms.CenterCrop(224),
-                                transforms.ToTensor(),
+                                # transforms.ToTensor(),
                                 transforms.Normalize(
                                     mean=[0.485, 0.456, 0.406],
                                     std=[0.229, 0.224, 0.225]
                                 )
                                 ])
 
-    print("Composed")
-
-    return normalize(x).clip(0.0, 1.0)
+    return normalize(x)
 
 # receives tensor
 def get_unnormalized_image(x):
@@ -49,10 +49,11 @@ def get_unnormalized_image(x):
         transforms.Normalize(mean = [-0.485, -0.456, -0.406], std = [1.0, 1.0, 1.0])
     ])
 
-  return unnormalize(x).clip(0.0, 1.0)
+  return unnormalize(x)
 
 # receives tensor with batch dimension
 def display_image(x):
   img = transforms.ToPILImage()(x[0])
   plt.imshow(img)
-  plt.show()
+  plt.pause(0.5)
+  plt.close('all')

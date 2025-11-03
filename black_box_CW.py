@@ -1,40 +1,60 @@
 import torch
 from torch.optim import Adam
+from model import top_5_classes
+from image_support import load_image, get_normalized_image, get_unnormalized_image, display_image
+from torchvision import transforms
 
 class AdversarialNoise(torch.nn.Module):
     def __init__(self, image_x):
+        super().__init__()
         # define delta as 0.5(tahn(w) + 1) - x
         # (where delta is the added noise)
-        self.w = torch.nn.Parameter(torch.atan(2 * image_x - 1))
+        self.w = torch.nn.Parameter(torch.atanh(2 * image_x - 1))
+        self.register_buffer("x_orig", image_x) 
 
-    def forward(self):
-        return self.w 
+    def forward(self, model, x, target, c):
+        model.eval()
 
-def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
-    C, H, W = x.shape
-    # initialise for delta = 0
-    adv_model = AdversarialNoise(x) 
-    optimizer = Adam(adv_model.parameters, lr=0.01)
-
-    c = 0.01
-
-    for _ in range(epochs):
-        w = adv_model()
-        logits = model(w)
+        x_pred = 0.5 * (torch.tanh(self.w) + 1)
+        logits = model(get_normalized_image(x_pred))[0]
 
         # loss for distance to target class
-        f = max(torch.tensor(0), logits[torch.arange(0, logits.size(1)) != target].max() - logits[target])
-        x_pred = 0.5 * torch.tan(w + 1) - x 
+        f = torch.maximum(torch.tensor(0), torch.masked_select(logits, torch.arange(0, logits.size(0)) != target).max() - logits[target])
+
+        delta = 0.5 * (torch.tanh(self.w) + 1) - x
+
         # L2 distance 
-        d = torch.pow(x_pred, 2).sum()
+        d = torch.pow(delta, 2).sum()
 
         loss = d + c * f
+        return self.w, loss
+
+def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
+    B, C, H, W = x.shape
+    # initialise for delta = 0
+    adv_model = AdversarialNoise(x) 
+    optimizer = Adam(adv_model.parameters(), lr=0.01)
+
+    # constant that defines the confidence in adversality
+    c = 1
+
+    for epoch in range(1000):
+        w, loss = adv_model(model, x, target, c)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-    w = adv_model() 
+        if (epoch + 1) % 100 == 0:
+            print(f'Loss after {epoch} epochs is {loss}') 
+            x_pred = 0.5 * (torch.tanh(w) + 1)
 
-    return 0.5 * (torch.tan(w) + 1) - x
+            display_image(x_pred)
+
+            y_pred = top_5_classes(model(get_normalized_image(x_pred)))[0]
+            print(y_pred) 
+
+    w, loss = adv_model(model, x, target, c) 
+
+    return 0.5 * (torch.tanh(w) + 1)
     
