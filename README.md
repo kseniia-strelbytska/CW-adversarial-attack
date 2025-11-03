@@ -1,15 +1,42 @@
-Implementing a Carlini-Wagner black-box adversarial attack 
+# Black-Box Carlini–Wagner Attack (Low-Frequency Variant)
+
+This repository implements a black-box variant of the Carlini & Wagner (CW) adversarial attack, extended to the low-frequency (LF-DCT) domain. The implementation supports both:
+
+- Standard CW attacks in pixel space (white-box).
+- Low-frequency CW attacks using a truncated 2D Discrete Cosine Transform (DCT) basis (black-box variant).
+
+Carlini-Wagner:
 https://arxiv.org/pdf/1608.04644
+Low-frequncy:
+https://arxiv.org/pdf/1809.08758
 
-Goal: optimize a set of parameters to model adversarial noise. Adding modeled noise to the original image results in misclassification by pre-trained resnet18 to a target class t.
+## Overview
 
-L2 attack was used as described in the paper.  
+This code trains a small per-image adversarial variable `w`, optimized so that the adversarial image `x'` is bounded in `[0, 1]` by a tanh-based transform:
 
-minimize_w ||1/2(tanh(w) + 1) - x||²₂ + c · f(1/2(tanh(w) + 1))
+$$
+x' = 0.5 \cdot (\tanh(w) + 1)
+$$
 
-where f is defined as:
+The perturbation is `δ = x' - x`. The optimization minimizes the objective
 
-f(x') = max(max{Z(x')ᵢ : i ≠ t} - Z(x')ₜ, -κ)
+$$
+L(x') = \|x' - x\|_2^2 + c \cdot f(x')
+$$
 
-delta = 1/2(tahn(w) + 1) - x
-x + delta = 1/2(tahn(w) + 1), thus 0 <= x + delta <= 1
+where `c` is a scalar weight and `f(x')` is the CW margin loss defined as
+
+$$
+f(x') = \max\big(\max_{i \ne t} Z(x')_i - Z(x')_t,\, 0\big)
+$$
+
+Here `Z(x')` are the logits produced by the model and `t` is the target class.
+
+## Features
+
+- Pixel-space CW attack (white-box).
+- Low-frequency DCT-space CW attack (black-box variant).
+- Per-image optimization using PyTorch autograd.
+- Configurable loss weighting (`c`), step size, and iteration count.
+- Compatible with any pre-trained model (for example, `resnet18` from `torchvision`).
+

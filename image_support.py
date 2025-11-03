@@ -55,5 +55,6 @@ def get_unnormalized_image(x):
 def display_image(x):
   img = transforms.ToPILImage()(x[0])
   plt.imshow(img)
+  plt.savefig('./interm_result.png')
   plt.pause(0.5)
   plt.close('all')
