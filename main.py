@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     output_file = args.output_file
 
-    output_file = process_query(model=model, img=img, target_class=class_idx, output_file=output_file, epochs=2000, lr=0.01)
+    output_file = process_query(model=model, img=img, target_class=class_idx, output_file=output_file, epochs=10000, lr=0.001)
     
     label, prob = get_image_prediction(model, load_image_file(output_file))
-    print(f'Best prediction: {label} with probability {prob:.4f}') 
+    print(f'Best prediction: class \'{label}\' with probability {prob:.4f}') 

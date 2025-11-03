@@ -40,22 +40,32 @@ Here `Z(x')` are the logits produced by the model and `t` is the target class.
 - Configurable loss weighting (`c`), step size, and iteration count.
 - Compatible with any pre-trained model (for example, `resnet18` from `torchvision`).
 
-## To run:
-Usage: main.py [-h] --model MODEL [--image_url IMAGE_URL] [--image_file IMAGE_FILE] [--output_file OUTPUT_FILE] --target_class TARGET_CLASS
+## Usage
+Generates adversarial images for a given black-box model, image, and target class.
 
-Generates an adversarial image for a given black-box model, image and target class
+### Installation
+Install the required dependencies:
+bashpip install -r requirements.txt
+Usage
+bashpython main.py [-h] --model MODEL [--image_url IMAGE_URL] [--image_file IMAGE_FILE] 
+               [--output_file OUTPUT_FILE] --target_class TARGET_CLASS
+### Arguments
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --model MODEL         Black-box model for attack ('resnet18', 'resnet34', 'resnet50')
-  --image_url IMAGE_URL
-                        URL of the image file
-  --image_file IMAGE_FILE
-                        Path to the image file
-  --output_file OUTPUT_FILE
-                        Path for the adverserial image output (default './final_image.png')
-  --target_class TARGET_CLASS
-                        Target class of the adversarial image for the chosen model
+-h, --help - Show help message and exit
+--model MODEL - Black-box model for attack (options: 'resnet18', 'resnet34', 'resnet50')
+--image_url IMAGE_URL - URL of the image file
+--image_file IMAGE_FILE - Path to the image file
+--output_file OUTPUT_FILE - Path for the adversarial image output (default: './final_image.png')
+--target_class TARGET_CLASS - Target class of the adversarial image for the chosen model
 
-Example:
-python3 main.py --model 'resnet18' --image_file './cat.jpg' --output_file 'final_image_cat_to_lemon.png' --target_class 'lemon'
+Example
+bashpython main.py --model resnet18 --image_file ./cat.jpg \
+               --output_file final_image_cat_to_lemon.png --target_class lemon
+
+### Requirements
+Create a requirements.txt file with your dependencies:
+torch>=2.0.0
+torchvision>=0.15.0
+Pillow>=9.0.0
+numpy>=1.21.0
+requests>=2.28.0

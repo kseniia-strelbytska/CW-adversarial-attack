@@ -45,14 +45,14 @@ def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
         loss.backward()
         optimizer.step()
 
-        if (epoch + 1) % 100 == 0:
+        if (epoch + 1) % 50 == 0:
             print(f'Loss after {epoch} epochs is {loss:.4f}') 
             x_pred = 0.5 * (torch.tanh(w) + 1)
 
             display_image(x_pred)
 
             y_pred = top_5_classes(model(get_normalized_image(x_pred)))[0]
-            print(f'Best prediction: {y_pred[0]} with probability {y_pred[1]:.4f}') 
+            print(f'Best prediction: \'{y_pred[0]}\' with probability {y_pred[1]:.4f}') 
 
     w, loss = adv_model(model, x, target, c) 
 
