@@ -2,13 +2,13 @@ import torch
 from torchvision import models, transforms, utils
 from image_support import load_image_url, load_image_file, get_normalized_image, get_unnormalized_image, display_image
 from black_box_CW import get_optimized_noise
-from model import top_5_classes
+from model import top_5_classes, get_imagenet_class_idx
 import argparse
 import json
 import requests
 
 # receives img in pil format
-def process_query(model, img, target_class, output_file=None, epochs=1000, lr=0.01):
+def process_query(model, img, target_class, output_file=None, epochs=1000, lr=0.01, confidence=0.9):
     model.eval() 
 
     transform = transforms.Compose([transforms.Resize(224),
@@ -40,13 +40,6 @@ def get_image_prediction(model, img):
 
     return prediction
 
-def get_imagenet_class_idx(class_label):
-    imagenet_labels_url = 'https://raw.githubusercontent.com/anishathalye/imagenet-simple-labels/master/imagenet-simple-labels.json'
-    response = requests.get(imagenet_labels_url)
-    imagenet_class_names = json.loads(response.text)
-
-    return imagenet_class_names.index(class_label)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generates an adversarial image for a given black-box model, image and target class')
     parser.add_argument('--model', type=str, required=True, help='Black-box model for attack')
@@ -54,6 +47,10 @@ if __name__ == "__main__":
     parser.add_argument('--image_file', type=str, required=False, help='Path to the image file')
     parser.add_argument('--output_file', type=str, required=False, help='Path for the adverserial image output')
     parser.add_argument('--target_class', type=str, required=True, help='Target class of the adversarial image for the chosen model')
+    parser.add_argument('--epochs', type=str, required=False, help='Number of epochs to train (with automatic termination if confidence treshold is reached)')
+    parser.add_argument('--lr', type=str, required=False, help='Learning rate')
+    parser.add_argument('--confidence', type=str, required=False, help='Confidence treshold for termination (searching for model_prediction >= confidence)')
+    
     args = parser.parse_args()
 
     model_name = args.model 
@@ -75,7 +72,7 @@ if __name__ == "__main__":
 
     output_file = args.output_file
 
-    output_file = process_query(model=model, img=img, target_class=class_idx, output_file=output_file, epochs=10000, lr=0.001)
+    output_file = process_query(model=model, img=img, target_class=class_idx, output_file=output_file, epochs=10000, lr=0.001, confidence=0.9)
     
     label, prob = get_image_prediction(model, load_image_file(output_file))
     print(f'Best prediction: class \'{label}\' with probability {prob:.4f}') 

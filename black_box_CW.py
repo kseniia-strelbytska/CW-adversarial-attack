@@ -1,8 +1,9 @@
 import torch
-from torch.optim import Adam
+from torch.optim import Adam, AdamW
 from model import top_5_classes
 from image_support import load_image_url, get_normalized_image, get_unnormalized_image, display_image
 from torchvision import transforms
+from model import get_imagenet_class_label
 
 class AdversarialNoise(torch.nn.Module):
     def __init__(self, image_x):
@@ -29,11 +30,13 @@ class AdversarialNoise(torch.nn.Module):
         loss = d + c * f
         return self.w, loss
 
-def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
+def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1, confidence=0.9):
+    class_label = get_imagenet_class_label(target)
+
     B, C, H, W = x.shape
     # initialise for delta = 0
     adv_model = AdversarialNoise(x) 
-    optimizer = Adam(adv_model.parameters(), lr=0.01)
+    optimizer = AdamW(adv_model.parameters(), lr=0.01)
 
     # constant that defines the confidence in adversality
     c = 1
@@ -50,9 +53,12 @@ def get_optimized_noise(model, x, epochs=10, lr=0.01, target=1):
             x_pred = 0.5 * (torch.tanh(w) + 1)
 
             display_image(x_pred)
-
             y_pred = top_5_classes(model(get_normalized_image(x_pred)))[0]
             print(f'Best prediction: \'{y_pred[0]}\' with probability {y_pred[1]:.4f}') 
+
+            # terminate if confidence treshold is reached
+            if epoch >= 1000 and y_pred[0] == class_label and y_pred[1] >= confidence:
+                break 
 
     w, loss = adv_model(model, x, target, c) 
 

@@ -60,7 +60,7 @@ bashpython main.py [-h] --model MODEL [--image_url IMAGE_URL] [--image_file IMAG
 
 Example
 bashpython main.py --model resnet18 --image_file ./cat.jpg \
-               --output_file final_image_cat_to_lemon.png --target_class lemon
+               --output_file final_image_cat_to_lemon.png --target_class lemon --confidence 0.9
 
 ### Requirements
 Create a requirements.txt file with your dependencies:
