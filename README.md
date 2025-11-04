@@ -41,7 +41,7 @@ Here `Z(x')` are the logits produced by the model and `t` is the target class.
 - Compatible with any pre-trained model (for example, `resnet18` from `torchvision`).
 
 ## Usage
-Generates adversarial images for a given black-box model, image, and target class.
+Generates classical CW adversarial image for a given black-box model, image, and target class.
 
 ### Installation
 Install the required dependencies:
