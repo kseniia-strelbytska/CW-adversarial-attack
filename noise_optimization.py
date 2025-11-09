@@ -6,44 +6,19 @@ from torchvision import transforms, utils
 from model import get_imagenet_class_label
 import torch_dct
 
-class AdversarialNoise(torch.nn.Module):
-    def __init__(self, image_x):
-        super().__init__()
-        # define delta as 0.5(tahn(w) + 1) - x
-        # (where delta is the added noise)
-        self.w = torch.nn.Parameter(torch.atanh(2 * image_x - 1))
-        self.register_buffer("x_orig", image_x) 
-
-    def forward(self, model, x, target, c):
-        model.eval()
-
-        x_pred = 0.5 * (torch.tanh(self.w) + 1)
-        logits = model(get_normalized_image(x_pred))[0]
-
-        # loss for distance to target class
-        f = torch.maximum(torch.tensor(0), torch.masked_select(logits, torch.arange(0, logits.size(0)) != target).max() - logits[target])
-
-        delta = 0.5 * (torch.tanh(self.w) + 1) - x
-
-        # L2 distance 
-        d = torch.pow(delta, 2).sum()
-
-        loss = d + c * f
-        return self.w, loss
-
 def get_optimized_noise(model, x, adv_model, low_freq=False, epochs=10, lr=0.01, target=1, confidence=0.9):
     # class_label = get_imagenet_class_label(target)
 
     B, C, H, W = x.shape
     # initialise for delta = 0
-    optimizer = AdamW(adv_model.parameters(), lr=0.01)
+    optimizer = AdamW(adv_model.parameters(), lr=lr)
 
     # constant that defines the confidence in adversality
-    c = 1
+    c = 0.5
     alpha = 0.1
 
     for epoch in range(epochs):
-        v, loss = adv_model(model, x, target, c, alpha)
+        delta, loss = adv_model(model, x, target, c, alpha)
 
         optimizer.zero_grad()
         loss.backward()
@@ -56,15 +31,8 @@ def get_optimized_noise(model, x, adv_model, low_freq=False, epochs=10, lr=0.01,
                 x_pred = 0.5 * (torch.tanh(v) + 1)
                 delta = (0.5 * (torch.tanh(v) + 1) - x)
             else:
-                V = torch.zeros_like(x, dtype = torch.float32)
-                V[:, :, :adv_model.side, :adv_model.side] = v
-
-                delta = torch_dct.idct_2d(V)
-                x_pred = (x + delta).clamp(0.0, 1.0)
-
-                noise = x_pred - x # some might become negative. how do we display negative? as black
-
-                mx = delta.max()
+                x_pred = (x + delta)
+                
                 # print(mx)
 
                 # if mx >= torch.tensor(0.0041):
@@ -95,18 +63,13 @@ def get_optimized_noise(model, x, adv_model, low_freq=False, epochs=10, lr=0.01,
             # if epoch >= 500 and y_pred[0] == class_label and y_pred[1] >= confidence:
             #     break 
 
-    v, loss = adv_model(model, x, target, c, alpha)
+    delta, loss = adv_model(model, x, target, c, alpha)
     
     if low_freq == False:
         x_pred = 0.5 * (torch.tanh(w) + 1)
         delta = (0.5 * (torch.tanh(v) + 1) - x)
     else:
-        V = torch.zeros_like(x, dtype = torch.float32)
-        V[:, :, :adv_model.side, :adv_model.side] = v
-
-        delta = torch_dct.idct_2d(V)
-
-        x_pred = (x + delta).clamp(0.0, 1.0)
+        x_pred = (x + delta)
 
     return x_pred
     

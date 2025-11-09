@@ -1,8 +1,8 @@
 import torch
 from torchvision import models, transforms, utils
 from image_support import load_image_url, load_image_file, get_normalized_image, get_unnormalized_image, display_image
-from black_box_CW import get_optimized_noise
-from black_box_low_frequency_CW import LowFreqAdversarialNoise
+from noise_optimization import get_optimized_noise
+from noise_models import LowFreqAdversarialNoise
 from model import top_5_classes, get_imagenet_class_idx
 import argparse
 import json
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     output_file = args.output_file
 
-    output_file = process_query(model=model, img=img, class_idx=951, output_file=output_file, epochs=100000, lr=0.01, confidence=0.8)
+    output_file = process_query(model=model, img=img, class_idx=951, output_file=output_file, epochs=100000, lr=0.001, confidence=0.8)
     
     label, prob = get_image_prediction(model, load_image_file(output_file))
     print(f'Best prediction: class \'{label}\' with probability {prob:.4f}') 
