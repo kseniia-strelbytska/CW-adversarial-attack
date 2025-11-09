@@ -2,13 +2,14 @@ import torch
 from torchvision import models, transforms, utils
 from image_support import load_image_url, load_image_file, get_normalized_image, get_unnormalized_image, display_image
 from black_box_CW import get_optimized_noise
+from black_box_low_frequency_CW import LowFreqAdversarialNoise
 from model import top_5_classes, get_imagenet_class_idx
 import argparse
 import json
 import requests
 
 # receives img in pil format
-def process_query(model, img, target_class, output_file=None, epochs=1000, lr=0.01, confidence=0.9):
+def process_query(model, img, class_idx, output_file=None, epochs=100000, lr=0.01, confidence=0.9):
     model.eval() 
 
     transform = transforms.Compose([transforms.Resize(224),
@@ -17,13 +18,19 @@ def process_query(model, img, target_class, output_file=None, epochs=1000, lr=0.
                                 ])
 
     img = transform(img).unsqueeze(0)
-    adv_img = get_optimized_noise(model=model, x=img, epochs=epochs, lr=lr, target=target_class)
-    prediction = top_5_classes(model(get_normalized_image(adv_img)))[0]
+    adv_model = LowFreqAdversarialNoise(img, 1/4)
+    adv_img = get_optimized_noise(model=model, x=img, adv_model=adv_model, low_freq=True, epochs=epochs, lr=lr, target=class_idx, confidence=confidence)
 
-    if output_file == None:
-        output_file = f'./final_image_{prediction[0]}.png'
+    noise = adv_img - img
+    torch.save(noise, './noise_tensor')
+
+    utils.save_image(noise, './noise_image.png')
+    # prediction = top_5_classes(model(get_normalized_image(adv_img)))[0]
+
+    # if output_file == None:
+    #     output_file = f'./final_image_{prediction[0]}.png'
     
-    utils.save_image(adv_img, output_file)
+    # utils.save_image(adv_img, output_file)
     
     return output_file
 
@@ -63,7 +70,7 @@ if __name__ == "__main__":
     model.eval()
 
     target_class = args.target_class 
-    class_idx = get_imagenet_class_idx(target_class)
+    # class_idx = get_imagenet_class_idx(target_class)
 
     if args.image_url is not None:
         img = load_image_url(args.image_url)
@@ -72,7 +79,7 @@ if __name__ == "__main__":
 
     output_file = args.output_file
 
-    output_file = process_query(model=model, img=img, target_class=class_idx, output_file=output_file, epochs=10000, lr=0.001, confidence=0.9)
+    output_file = process_query(model=model, img=img, class_idx=951, output_file=output_file, epochs=100000, lr=0.01, confidence=0.8)
     
     label, prob = get_image_prediction(model, load_image_file(output_file))
     print(f'Best prediction: class \'{label}\' with probability {prob:.4f}') 
