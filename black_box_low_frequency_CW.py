@@ -23,7 +23,7 @@ class LowFreqAdversarialNoise(torch.nn.Module):
 
         delta = torch_dct.idct_2d(V)
 
-        x_pred = (x + delta)
+        x_pred = (x + delta).clamp(0.0, 1.0)
 
         logits = model(get_normalized_image(x_pred))[0]
 
@@ -33,7 +33,7 @@ class LowFreqAdversarialNoise(torch.nn.Module):
         # print(self.w)
 
         # loss for distance to target class
-        f = torch.maximum(torch.tensor(0), torch.masked_select(logits, torch.arange(0, logits.size(0)) != target).max() - logits[target])
+        f = torch.clamp(torch.masked_select(logits, torch.arange(0, logits.size(0)) != target).max() - logits[target], min=0.0)
 
         # L2 distance
         d = torch.pow(delta, 2).sum()
