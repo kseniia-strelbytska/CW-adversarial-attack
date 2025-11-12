@@ -29,29 +29,30 @@ class AdversarialNoise(torch.nn.Module):
         return self.w, loss
 
 class LowFreqAdversarialNoise(torch.nn.Module):
-    def __init__(self, image_x, ratio):
+    def __init__(self, x, ratio):
         super().__init__()
         # define delta as 0.5(tahn(w) + 1) - x
         # (where delta is the added noise)
 
-        self.side = round(ratio * image_x.shape[2])
+        self.side = round(ratio * x.shape[2])
+        self.v = torch.nn.Parameter(torch.rand_like(x, dtype=torch.float32) * 1e-3)
+        self.register_buffer("x_orig", x)
 
-        self.v = torch.nn.Parameter(torch.rand_like(image_x, dtype=torch.float32))
-        
-        self.register_buffer("x_orig", image_x)
+        mask = torch.zeros_like(x, dtype=torch.float)
+        mask[:, :, :self.side, :self.side] = 1.0
+        self.register_buffer("mask", mask)
 
     def forward(self, model, x, target, c, alpha):
         model.eval()
 
-        delta = torch.zeros_like(x, dtype=torch.float32)
-        delta[:, :, :self.side, :self.side] = torch_dct.dct_2d(self.v, norm='ortho')[:, :, :self.side, :self.side]
-        delta = torch_dct.idct_2d(delta, norm='ortho')
+        delta = self.mask * torch_dct.dct_2d(self.v, norm='ortho')
+        delta = 10* torch_dct.idct_2d(delta, norm='ortho')
         
         x_pred = (x + delta)
         logits = model(get_normalized_image(x_pred))[0]
         
         # loss for distance to target class
-        f = torch.clamp(torch.masked_select(logits, torch.arange(0, logits.size(0)) != target).max() - logits[target], min=0.0)
+        f = torch.clamp(torch.masked_select(logits, torch.arange(0, logits.size(0), device=logits.device) != target).max() - logits[target], min=0.0)
 
         # L2 distance
         d = torch.pow(delta, 2).sum()

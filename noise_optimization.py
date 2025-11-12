@@ -32,6 +32,8 @@ def get_optimized_noise(model, x, adv_model, low_freq=False, epochs=10, lr=0.01,
                 delta = (0.5 * (torch.tanh(v) + 1) - x)
             else:
                 x_pred = (x + delta)
+
+                print(delta.min(), delta.max())
                 
                 # print(mx)
 
