@@ -9,17 +9,14 @@ from image_support import get_normalized_image
 def phi(model, x, y_mal):
     # returns sign(S) = sign(p[y_mal] - p[j != y_mal])
 
-    logits = model(get_normalized_image(x).unsqueeze(0))[0].softmax(dim=-1)
+    logits = model(get_normalized_image(x).unsqueeze(0))[0]
     L = logits.shape[0] # number of classes
 
-    # create a mask with True for all labels except y_mal
-    mask = torch.arange(L) != y_mal
-
-    s = logits[y_mal] - torch.where(mask == True, logits, torch.zeros_like(logits)).max()
+    pred = torch.argmax(logits)
 
     # if s(x) = 0, phi(x) = 1
 
-    return 1 if s == 0 else torch.sign(s).item()
+    return 1 if pred == y_mal else -1
 
 def estimate_gradient(model, x, y_mal, delta=0.01, B=100):
     # returns monte carlo gradient estimation of S at point x
@@ -27,22 +24,21 @@ def estimate_gradient(model, x, y_mal, delta=0.01, B=100):
     # need to sample B adversarial noise perturbations
     # shape : (B, C, H, W)
     C, H, W = x.shape
-    u = torch.rand((B, C, H, W))
+    u = torch.randn((B, C, H, W))
 
     # normalise (L2 norm), so that SUM(ub) = 1 (unit length vector). 
     # effect: removes the effect of magnitude from noise
-    L2 = (u**2).sum(dim=-1).sum(dim=-1).sum(dim=-1)
+    L2 = torch.sqrt((u**2).sum(dim=-1).sum(dim=-1).sum(dim=-1))
     u /= L2[:, None, None, None]
 
     # create B perturbed iamges 
     x_pert = x.unsqueeze(0) + delta * u
 
-    gradient = torch.zeros(B, C, H, W)
+    gradient = torch.zeros(C, H, W)
     for idx in range(B):
         p = phi(model, x_pert[idx], y_mal) * u[idx]
         gradient += p 
 
-    gradient = gradient.sum(dim=0) # shape (C, H, W)
     gradient *= 1/B
 
     return gradient
@@ -65,10 +61,10 @@ def project_to_boundary(model, x_hat, x_target, y_mal):
         # use vector interpolation to along x_target -> x_hat vector
         x_proj = alpha * x_target + (1 - alpha) * x_hat 
 
-        if phi(model, x_proj, y_mal) >= 0.9: # still y_mal
+        if phi(model, x_proj, y_mal) == 1: # still y_mal
             l_b = alpha 
         else:
-            r_b = alpha - ACC
+            r_b = alpha
 
     alpha = (r_b + l_b) / 2.0
     return alpha * x_target + (1 - alpha) * x_hat 
@@ -84,15 +80,15 @@ def boundary_attack(model, x, x_target, y_mal, eps=0.001, epochs=1000, delta=0.0
 
     for epoch in range(epochs):
         gradient = estimate_gradient(model, x, y_mal, delta, B)
-        L2 = torch.sqrt(gradient**2)
-        gradient /= L2
+        L2 = torch.sqrt(torch.sum(gradient**2))
+        gradient /= L2[:, None, None]
 
         # take a step to increase prob. of y_mal class
         x_hat = x + eps * gradient
 
         # project to decision boundary 
         x_proj = project_to_boundary(model, x_hat, x_target, y_mal)
-        L2 = torch.sum((x - x_proj)**2)
+        L2 = torch.sqrt(torch.sum((x - x_proj)**2))
         x = x_proj
 
         print(f"Step {epoch} done. Change: {L2:.10f}")
