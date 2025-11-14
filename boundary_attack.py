@@ -69,7 +69,7 @@ def project_to_boundary(model, x_hat, x_target, y_mal):
     alpha = (r_b + l_b) / 2.0
     return alpha * x_target + (1 - alpha) * x_hat 
 
-def boundary_attack(model, x, x_target, y_mal, eps=0.001, epochs=1000, delta=0.001, B=100):
+def boundary_attack(model, x, x_target, y_mal, eps=0.001, epochs=2*10**6, delta=0.001, B=100):
     # returns adversarial image apearing to be x_target with label y_mal
     # x is an example from malicious class
     # we want to keep label y_mal (malicious), 
@@ -81,7 +81,7 @@ def boundary_attack(model, x, x_target, y_mal, eps=0.001, epochs=1000, delta=0.0
     for epoch in range(epochs):
         gradient = estimate_gradient(model, x, y_mal, delta, B)
         L2 = torch.sqrt(torch.sum(gradient**2))
-        gradient /= L2[:, None, None]
+        gradient /= L2
 
         # take a step to increase prob. of y_mal class
         x_hat = x + eps * gradient
@@ -91,8 +91,13 @@ def boundary_attack(model, x, x_target, y_mal, eps=0.001, epochs=1000, delta=0.0
         L2 = torch.sqrt(torch.sum((x - x_proj)**2))
         x = x_proj
 
-        print(f"Step {epoch} done. Change: {L2:.10f}")
+        L2_target = torch.sqrt(torch.sum((x - x_target)**2))
+
+        print(f"Step {epoch} done. L2 from last step: {L2:.10f}. L2 to target {L2_target}")
         utils.save_image(x, './images/intermidiate_BA_image.png')
+
+        if (epoch + 1) % 100 == 0:
+            utils.save_image(x, f'./images/intermidiate_BA_image_epoch{epoch}.png')
     
     return x
 

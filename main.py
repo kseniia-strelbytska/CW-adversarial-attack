@@ -34,7 +34,7 @@ def process_query(model, img, class_idx, output_file=None, epochs=100000, lr=0.0
     
     return output_file
 
-def process_boundary_attack_query(output_file, model, x, x_target, y_mal, eps=0.01, epochs=1000, delta=0.01, B=100): 
+def process_boundary_attack_query(output_file, model, x, x_target, y_mal, eps=0.01, epochs=2*10**6, delta=0.01, B=100): 
     transform = transforms.Compose([transforms.Resize(224),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor()
@@ -46,7 +46,7 @@ def process_boundary_attack_query(output_file, model, x, x_target, y_mal, eps=0.
 
     if output_file == None:
         output_file = './images/BA_adversarial_image.png'
-    utils.save_image(noise, output_file)
+    utils.save_image(x_adv, output_file)
 
     return output_file
 
